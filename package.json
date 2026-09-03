@@ -1,13 +1,14 @@
 {
-  "name": "sarahaapp",
+  "name": "tickets-backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "Tickets Management Backend API",
   "main": "./src/index.js",
   "type": "module",
   "engines": {
     "node": "22.21.0"
   },
   "scripts": {
+    "start": "node ./src/index.js",
     "dev": "node --watch ./src/index.js"
   },
   "keywords": [],

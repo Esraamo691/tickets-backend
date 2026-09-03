@@ -1,0 +1,52 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tickets_app
+    restart: unless-stopped
+    ports:
+      - "3016:3016"
+    env_file:
+      - .env
+    environment:
+      - PORT=3016
+      - DB_URI=mongodb://mongo:27017/tickets_db
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - mongo
+      - redis
+    networks:
+      - tickets_network
+
+  mongo:
+    image: mongo:7
+    container_name: tickets_mongo
+    restart: unless-stopped
+    ports:
+      - "27018:27017"
+    volumes:
+      - tickets_mongodata:/data/db
+    networks:
+      - tickets_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: tickets_redis
+    restart: unless-stopped
+    ports:
+      - "6395:6379"
+    volumes:
+      - tickets_redisdata:/data
+    networks:
+      - tickets_network
+
+volumes:
+  tickets_mongodata:
+    driver: local
+  tickets_redisdata:
+    driver: local
+
+networks:
+  tickets_network:
+    driver: bridge
