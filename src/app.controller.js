@@ -1,45 +1,55 @@
-import cors from "cors";
+import * as dotenv from "dotenv";
+import path from "node:path";
+dotenv.config({});
 import express from "express";
+import authController from "./modules/auth/auth.controller.js";
+import connectDB from "./DB/connection.db.js";
+import cors from "cors";
+import rateLimit from "express-rate-limit";
+import helmet from "helmet";
+import { globalErrorHandling } from "./utils/response.js";
 
-export const bootstrap = (app, express) => {
-  // Middleware
+const bootstrap = async () => {
+  const app = express();
+  const port = process.env.PORT || 3016;
+
   app.use(cors());
+  app.use(helmet());
+  //db
+  await connectDB();
+  /////////////////////////////////
+  //rate limit
+  const limiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    limit: 10,
+    message: { error: "BAS BAAAAA Too Many request 😒" },
+    handler: (req, res, next, options) => {
+      return res.status(options.statusCode).json(options.message);
+    },
+    // legacyHeaders:false
+    standardHeaders: "draft-8",
+  });
+  app.use(limiter);
+
+  //multer static access
+  app.use("/uploads", express.static(path.resolve("./src/uploads")));
+  //convert json buffer data
   app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
-
-  // Root & Health Check Endpoints
   app.get("/", (req, res) => {
-    return res.status(200).json({
-      status: "success",
-      message: "Welcome to Tickets Backend API 🎫",
-      environment: process.env.NODE_ENV || "development",
-      port: process.env.PORT || 3016,
-    });
+    res.json({ message: "Welcome to Tickets Backend API❤️" });
   });
 
-  app.get("/health", (req, res) => {
-    return res.status(200).json({
-      status: "ok",
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-    });
-  });
+  //routing application
+  app.use("/auth", authController);
 
-  // Global 404 Route Handler
-  app.use((req, res) => {
-    return res.status(404).json({
-      status: "error",
-      message: `Cannot ${req.method} ${req.originalUrl}`,
-    });
+  app.all("{/*dummy}", (req, res) => {
+    return res.status(404).json({ message: "In-valid routing" });
   });
+  //error handling middleware
+  app.use(globalErrorHandling);
 
-  // Global Error Handler
-  app.use((err, req, res, next) => {
-    const statusCode = err.status || err.statusCode || 500;
-    return res.status(statusCode).json({
-      status: "error",
-      message: err.message || "Internal Server Error",
-      ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
-    });
-  });
+  return app.listen(port, () =>
+    console.log(`example app listen on server ${port}`),
+  );
 };
+export default bootstrap;
